@@ -1,8 +1,6 @@
 package sysfs
 
-import (
-	"os"
-)
+import "os"
 
 var (
 	Block       Subsystem = "/sys/block"
@@ -62,7 +60,7 @@ func lsDirs(dir string, callback func(name string)) error {
 		return err
 	}
 	for i := range fileInfos {
-		if fileInfos[i].IsDir() {
+		if fileInfos[i].IsDir() || fileInfos[i].Mode()&os.ModeSymlink != 0 {
 			callback(fileInfos[i].Name())
 		}
 	}

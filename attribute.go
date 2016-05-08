@@ -1,10 +1,12 @@
 package sysfs
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -17,14 +19,17 @@ func (attrib *Attribute) Exists() bool {
 	return fileExists(attrib.Path)
 }
 
-func (attrib *Attribute) Open() (err error) {
-	attrib.File, err = os.OpenFile(attrib.Path, os.O_RDWR|syscall.O_NONBLOCK, 0660)
+func (attrib *Attribute) Open(flag int, perm os.FileMode) (err error) {
+	attrib.File, err = os.OpenFile(attrib.Path, flag, perm)
 	return err
 }
 
+func (attrib *Attribute) OpenRW() (err error) {
+	return attrib.Open(os.O_RDWR|syscall.O_NONBLOCK, 0666)
+}
+
 func (attrib *Attribute) OpenRO() (err error) {
-	attrib.File, err = os.OpenFile(attrib.Path, os.O_RDONLY|syscall.O_NONBLOCK, 0666)
-	return err
+	return attrib.Open(os.O_RDONLY|syscall.O_NONBLOCK, 0444)
 }
 
 func (attrib *Attribute) Close() (err error) {
@@ -35,7 +40,7 @@ func (attrib *Attribute) Close() (err error) {
 
 func (attrib *Attribute) Ioctl(request, arg uintptr) (result uintptr, errno syscall.Errno, err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRW()
 		if err != nil {
 			return
 		}
@@ -68,12 +73,12 @@ func (attrib *Attribute) Read() (str string, err error) {
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	return string(bytes.TrimSpace(data)), nil
 }
 
 func (attrib *Attribute) Write(value string) (err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRW()
 		if err != nil {
 			return
 		}
@@ -91,7 +96,7 @@ func (attrib *Attribute) Write(value string) (err error) {
 
 func (attrib *Attribute) Print(value interface{}) (err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRO()
 		if err != nil {
 			return
 		}
@@ -109,7 +114,7 @@ func (attrib *Attribute) Print(value interface{}) (err error) {
 
 func (attrib *Attribute) Scan(value interface{}) (err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRO()
 		if err != nil {
 			return
 		}
@@ -127,7 +132,7 @@ func (attrib *Attribute) Scan(value interface{}) (err error) {
 
 func (attrib *Attribute) Printf(format string, args ...interface{}) (err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRO()
 		if err != nil {
 			return
 		}
@@ -145,7 +150,7 @@ func (attrib *Attribute) Printf(format string, args ...interface{}) (err error) 
 
 func (attrib *Attribute) Scanf(format string, args ...interface{}) (err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRO()
 		if err != nil {
 			return
 		}
@@ -161,9 +166,9 @@ func (attrib *Attribute) Scanf(format string, args ...interface{}) (err error) {
 	return err
 }
 
-func (attrib *Attribute) ReadBytes() (data []byte, err error) {
+func (attrib *Attribute) ReadAllBytes() (data []byte, err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRO()
 		if err != nil {
 			return
 		}
@@ -180,7 +185,7 @@ func (attrib *Attribute) ReadBytes() (data []byte, err error) {
 
 func (attrib *Attribute) WriteBytes(data []byte) (err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRW()
 		if err != nil {
 			return
 		}
@@ -195,9 +200,9 @@ func (attrib *Attribute) WriteBytes(data []byte) (err error) {
 	return err
 }
 
-func (attrib *Attribute) ReadByte() (value byte, err error) {
+func (attrib *Attribute) ReadBytes(offset int64, count int) (data []byte, n int, err error) {
 	if attrib.File == nil {
-		err = attrib.Open()
+		err = attrib.OpenRO()
 		if err != nil {
 			return
 		}
@@ -208,8 +213,13 @@ func (attrib *Attribute) ReadByte() (value byte, err error) {
 			}
 		}()
 	}
-	data := make([]byte, 1)
-	_, err = attrib.File.ReadAt(data, 0)
+	data = make([]byte, count)
+	n, err = attrib.File.ReadAt(data, offset)
+	return data, n, err
+}
+
+func (attrib *Attribute) ReadByte() (byte, error) {
+	data, _, err := attrib.ReadBytes(0, 1)
 	return data[0], err
 }
 
@@ -222,7 +232,7 @@ func (attrib *Attribute) ReadInt() (value int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	return strconv.Atoi(s)
+	return strconv.Atoi(strings.TrimSpace(s))
 }
 
 func (attrib *Attribute) WriteInt(value int) (err error) {

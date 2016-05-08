@@ -2,10 +2,19 @@ package sysfs
 
 import (
 	// "os"
+	"path/filepath"
 	"strings"
 )
 
 type Object string
+
+func objFullPath(path string) Object {
+	path, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return Object(path)
+	}
+	return Object(path)
+}
 
 func (obj Object) Exists() bool {
 	return dirExists(string(obj))
@@ -19,13 +28,13 @@ func (obj Object) SubObjects() []Object {
 	path := string(obj) + "/"
 	objects := make([]Object, 0)
 	lsDirs(path, func(name string) {
-		objects = append(objects, Object(path+name))
+		objects = append(objects, objFullPath(path+name))
 	})
 	return objects
 }
 
 func (obj Object) SubObject(name string) Object {
-	return Object(string(obj) + "/" + name)
+	return objFullPath(string(obj) + "/" + name)
 }
 
 func (obj Object) Attributes() []Attribute {
