@@ -2,6 +2,7 @@ package sysfs
 
 import (
 	// "os"
+
 	"path/filepath"
 	"strings"
 )
@@ -33,6 +34,19 @@ func (obj Object) SubObjects() []Object {
 	return objects
 }
 
+func (obj Object) SubObjectsFilter(filter string) []Object {
+	path := string(obj) + "/"
+	objects := make([]Object, 0)
+
+	lsDirs(path, func(name string) {
+		match, err := filepath.Match(filter, name)
+		if match && err == nil {
+			objects = append(objects, objFullPath(path+name))
+		}
+	})
+	return objects
+}
+
 func (obj Object) SubObject(name string) Object {
 	return objFullPath(string(obj) + "/" + name)
 }
@@ -48,4 +62,13 @@ func (obj Object) Attributes() []Attribute {
 
 func (obj Object) Attribute(name string) *Attribute {
 	return &Attribute{Path: string(obj) + "/" + name}
+}
+
+func (obj Object) Parent(count int) Object {
+	if count < 0 {
+		p := strings.Split(string(obj), "/")
+		return objFullPath(string(obj) + strings.Repeat("/..", len(p)+count))
+	} else {
+		return objFullPath(string(obj) + strings.Repeat("/..", count))
+	}
 }
