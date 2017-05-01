@@ -16,7 +16,8 @@ type Attribute struct {
 }
 
 func (attrib *Attribute) Exists() bool {
-	return fileExists(attrib.Path)
+	f, _ := fileExists(attrib.Path)
+	return f
 }
 
 func (attrib *Attribute) Open(flag int, perm os.FileMode) (err error) {

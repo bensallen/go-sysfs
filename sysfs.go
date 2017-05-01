@@ -21,14 +21,14 @@ var (
 // 	return err == nil
 // }
 
-func dirExists(dirname string) bool {
+func dirExists(dirname string) (bool, error) {
 	info, err := os.Stat(dirname)
-	return err == nil && info.IsDir()
+	return err == nil && info.IsDir(), err
 }
 
-func fileExists(dirname string) bool {
+func fileExists(dirname string) (bool, error) {
 	info, err := os.Stat(dirname)
-	return err == nil && !info.IsDir()
+	return err == nil && !info.IsDir(), err
 }
 
 func lsFiles(dir string, callback func(name string)) error {

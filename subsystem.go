@@ -1,13 +1,12 @@
 package sysfs
 
-import (
 // "os"
-)
 
 type Subsystem string
 
 func (subsys Subsystem) Exists() bool {
-	return dirExists(string(subsys))
+	d, _ := dirExists(string(subsys))
+	return d
 }
 
 func (subsys Subsystem) Name() string {

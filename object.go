@@ -18,7 +18,8 @@ func objFullPath(path string) Object {
 }
 
 func (obj Object) Exists() bool {
-	return dirExists(string(obj))
+	d, _ := dirExists(string(obj))
+	return d
 }
 
 func (obj Object) Name() string {
@@ -47,8 +48,13 @@ func (obj Object) SubObjectsFilter(filter string) []Object {
 	return objects
 }
 
-func (obj Object) SubObject(name string) Object {
-	return objFullPath(string(obj) + "/" + name)
+func (obj Object) SubObject(name string) (Object, error) {
+	d, err := dirExists(string(obj) + "/" + name)
+	if d {
+		return objFullPath(string(obj) + "/" + name), nil
+	}
+	return "", err
+
 }
 
 func (obj Object) Attributes() []Attribute {
@@ -68,7 +74,7 @@ func (obj Object) Parent(count int) Object {
 	if count < 0 {
 		p := strings.Split(string(obj), "/")
 		return objFullPath(string(obj) + strings.Repeat("/..", len(p)+count))
-	} else {
-		return objFullPath(string(obj) + strings.Repeat("/..", count))
 	}
+	return objFullPath(string(obj) + strings.Repeat("/..", count))
+
 }
